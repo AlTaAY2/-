@@ -8,7 +8,7 @@ const NUM = /^-?\d+(\.\d+)?$/;
 const bad = (res, msg, code = 400) => res.status(code).json({ error: msg });
 
 module.exports = async (req, res) => {
-  const { type, q, viewbox, mode, from, to } = req.query;
+  const { type, q, viewbox, near, mode, from, to } = req.query;
 
   try {
     // 1) إعدادات للواجهة (مثلاً رابط البلاطات مع المفتاح من متغير بيئة)
@@ -25,6 +25,12 @@ module.exports = async (req, res) => {
         const v = viewbox.split(',');
         if (v.length !== 4 || !v.every(n => NUM.test(n))) return bad(res, 'bad viewbox');
         u += '&bounded=1&viewbox=' + v.join(',');
+      }
+      if (near && !viewbox) { // تفضيل النتائج القريبة بدون حصرها
+        const c = near.split(',');
+        if (c.length !== 2 || !c.every(n => NUM.test(n))) return bad(res, 'bad near');
+        const la = +c[0], lo = +c[1];
+        u += '&viewbox=' + [lo - 0.4, la + 0.4, lo + 0.4, la - 0.4].join(',');
       }
       const r = await fetch(u, { headers: { 'User-Agent': UA } });
       if (!r.ok) return bad(res, 'upstream', 502);
@@ -43,7 +49,7 @@ module.exports = async (req, res) => {
       if (!['car', 'bike', 'foot'].includes(mode)) return bad(res, 'bad mode');
       const a = (from || '').split(','), b = (to || '').split(',');
       if (a.length !== 2 || b.length !== 2 || ![...a, ...b].every(n => NUM.test(n))) return bad(res, 'bad coords');
-      const u = `https://routing.openstreetmap.de/routed-${mode}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`;
+      const u = `https://routing.openstreetmap.de/routed-${mode}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson&steps=true`;
       const r = await fetch(u, { headers: { 'User-Agent': UA } });
       if (!r.ok) return bad(res, 'upstream', 502);
       const j = await r.json();
@@ -53,7 +59,11 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         distance: x.distance,
         duration: x.duration,
-        coords: x.geometry.coordinates.map(c => [c[1], c[0]])
+        coords: x.geometry.coordinates.map(c => [c[1], c[0]]),
+        steps: (x.legs[0].steps || []).map(t => ({
+          type: t.maneuver.type, mod: t.maneuver.modifier || '', name: t.name || '',
+          dist: t.distance, lat: t.maneuver.location[1], lon: t.maneuver.location[0]
+        }))
       });
     }
 
