@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>طريقي</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+<style>
+:root{--card:#fff;--text:#1f2540;--mute:#6b7494;--blue:#05c8f7;--blue2:#0a9fd1;--ink:#1f2540;--line:#e6eaf3;--org:#ff8a1f;--shadow:0 6px 22px rgba(31,37,64,.2);--fx:none;--tint:#eef3fb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:#262c44;--text:#f3f6ff;--mute:#9aa3c4;--ink:#12162a;--line:#343b5a;--tint:#323a5c;--shadow:0 6px 22px rgba(0,0,0,.5);--fx:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}}
+:root[data-theme="dark"]{--card:#262c44;--text:#f3f6ff;--mute:#9aa3c4;--ink:#12162a;--line:#343b5a;--tint:#323a5c;--shadow:0 6px 22px rgba(0,0,0,.5);--fx:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;font-family:Tajawal,system-ui,sans-serif;color:var(--text)}
+button{font-family:inherit}
+#map{position:fixed;inset:0;direction:ltr;background:#e9eef3}
+.leaflet-tile-pane{filter:var(--fx)}
+.leaflet-control-attribution{font-size:9px;opacity:.7}
+#banner{position:fixed;z-index:1200;top:0;left:0;right:0;background:var(--ink);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 18px 16px;border-radius:0 0 28px 28px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;transform:translateY(-130%);transition:transform .45s cubic-bezier(.22,.9,.2,1)}
+body.nav #banner{transform:none}
+#bArrow{font-size:54px;line-height:1;width:64px;text-align:center;color:var(--blue)}
+#bDist{font-size:30px;font-weight:800;line-height:1.1}
+#bText{font-size:17px;font-weight:500}
+#bName{font-size:13px;color:#aab3d6;margin-top:2px}
+#dock{position:fixed;z-index:1100;left:0;right:0;bottom:0;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:10px;max-width:560px;margin:0 auto;transition:transform .45s cubic-bezier(.22,.9,.2,1)}
+body.nav #dock,body.prev #dock{transform:translateY(130%)}
+.where{display:flex;align-items:center;gap:12px;height:60px;padding:0 20px;border-radius:30px;background:var(--card);box-shadow:var(--shadow)}
+.where input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 18px Tajawal,sans-serif;color:var(--text)}
+.where input::placeholder{color:var(--mute)}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;border-radius:22px;padding:10px 16px;background:var(--card);color:var(--text);font:700 14px Tajawal,sans-serif;box-shadow:var(--shadow);cursor:pointer}
+#res{display:none;max-height:42vh;overflow:auto;background:var(--card);border-radius:24px;padding:6px;box-shadow:var(--shadow)}
+#res.on{display:block}
+.row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:16px;cursor:pointer;border:0;background:none;width:100%;text-align:right;font:inherit;color:inherit}
+.row:active{background:var(--tint)}
+.row b{display:block;font-size:15px}.row small{display:block;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64vw}
+.ico{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--tint);font-size:18px}
+.note{padding:14px;color:var(--mute);font-size:14px}
+#fabs{position:fixed;z-index:1150;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;transition:opacity .3s}
+body.prev #fabs{opacity:0;pointer-events:none}
+.fab{width:52px;height:52px;border-radius:50%;border:0;background:var(--card);box-shadow:var(--shadow);font-size:22px;cursor:pointer;color:var(--text);transition:transform .15s}
+.fab:active{transform:scale(.9)}
+.fab.rep{background:var(--org);color:#fff;font-size:24px}
+body.nav #fabs{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:none}
+#spd{position:fixed;z-index:1150;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 100px);width:72px;height:72px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);display:none;flex-direction:column;align-items:center;justify-content:center;border:4px solid var(--blue)}
+body.nav #spd{display:flex}
+#spd b{font-size:24px;line-height:1}#spd small{font-size:10px;color:var(--mute)}
+.sheet{position:fixed;z-index:1200;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--card);border-radius:30px 30px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom,0px) + 16px);box-shadow:0 -6px 30px rgba(31,37,64,.22);transform:translateY(110%);transition:transform .45s cubic-bezier(.22,.9,.2,1)}
+.sheet.on{transform:none}
+.sheet h2{margin:0;font-size:21px}.sheet .a{color:var(--mute);font-size:13px;margin-top:2px;max-height:36px;overflow:hidden}
+.eta{display:flex;align-items:baseline;gap:10px;margin:12px 0 14px}
+.eta b{font-size:30px;font-weight:800;color:var(--blue2)}.eta span{color:var(--mute);font-size:15px}
+.btns{display:flex;gap:10px}
+.btn{height:56px;border-radius:28px;border:0;font:800 18px Tajawal,sans-serif;cursor:pointer;background:var(--tint);color:var(--text)}
+.btn.go{flex:1;background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(5,200,247,.45)}
+.btn.sq{width:56px;font-size:22px}
+.btn.end{flex:none;background:#ff4d5e;color:#fff;padding:0 22px}
+#nbar .info{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#nbar b{font-size:26px;font-weight:800}#nbar small{display:block;color:var(--mute);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.rb{border:0;border-radius:22px;background:var(--tint);padding:16px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;font:700 13px Tajawal,sans-serif;color:var(--text);cursor:pointer}
+.rb span{font-size:32px}.rb:active{transform:scale(.94)}
+.car svg{width:44px;height:44px;transition:transform .3s;filter:drop-shadow(0 3px 5px rgba(0,0,0,.35))}
+.pin{width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--blue);border:3px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.35);animation:drop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes drop{from{transform:rotate(-45deg) scale(0)}to{transform:rotate(-45deg) scale(1)}}
+.rp{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid var(--org);display:grid;place-items:center;font-size:18px;box-shadow:0 4px 10px rgba(0,0,0,.3)}
+#toast{position:fixed;z-index:3000;top:calc(env(safe-area-inset-top,0px) + 90px);left:50%;transform:translate(-50%,-20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:22px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:.3s;max-width:90vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#perm{position:fixed;inset:0;z-index:3500;display:none;place-items:center;padding:24px;background:rgba(18,22,42,.55)}
+#perm.on{display:grid}
+#perm .box{background:var(--card);border-radius:32px;padding:28px 22px;text-align:center;max-width:340px;width:100%}
+#perm .big{font-size:56px}#perm h3{margin:6px 0 8px;font-size:22px}#perm p{margin:0 0 18px;color:var(--mute);font-size:14px;line-height:1.7}
+#perm .btn{width:100%;margin-top:10px;display:block}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="banner"><div id="bArrow">⬆</div><div><div id="bDist"></div><div id="bText"></div><div id="bName"></div></div></div>
+
+<div id="fabs">
+  <button class="fab rep" id="bRep" aria-label="إبلاغ">⚠️</button>
+  <button class="fab" id="bLoc" aria-label="موقعي">🎯</button>
+  <button class="fab" id="bMute" aria-label="الصوت">🔊</button>
+  <button class="fab" id="bTheme" aria-label="المظهر">🌓</button>
+</div>
+<div id="spd"><b id="spdN">0</b><small>كم/س</small></div>
+
+<div id="dock">
+  <div id="res"></div>
+  <div class="chips" id="chips"></div>
+  <label class="where"><span>🔍</span><input id="q" type="search" placeholder="إلى أين؟" autocomplete="off" aria-label="إلى أين"></label>
+</div>
+
+<section class="sheet" id="pcard" aria-live="polite">
+  <h2 id="pName"></h2><div class="a" id="pAddr"></div>
+  <div class="eta"><b id="pT">…</b><span id="pD"></span></div>
+  <div class="btns"><button class="btn go" id="bStart">ابدأ</button><button class="btn sq" id="bSave" aria-label="حفظ">☆</button><button class="btn sq" id="bX" aria-label="إغلاق">✕</button></div>
+</section>
+
+<section class="sheet" id="nbar">
+  <div class="info"><div><b id="nT"></b><small id="nD"></small></div><div><b id="nA"></b><small>الوصول</small></div>
+  <button class="btn sq" id="bSim" aria-label="تجربة">▶</button><button class="btn end" id="bEnd">إنهاء</button></div>
+</section>
+
+<section class="sheet" id="rsheet"><h2>وش صار في الطريق؟</h2><div class="grid" id="rGrid"></div><div class="btns" style="margin-top:14px"><button class="btn" style="flex:1" id="rX">إلغاء</button></div></section>
+
+<div id="toast"></div>
+<div id="perm" role="dialog" aria-modal="true"><div class="box"><div class="big">📍</div><h3>السماح بالوصول للموقع</h3>
+  <p>نحتاج موقعك لتوجيهك خطوة بخطوة وإظهار مكانك على خريطة النجف.</p>
+  <button class="btn go" id="pYes">السماح بالموقع</button><button class="btn" id="pNo">ليس الآن</button></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* الإعدادات — البحث والمسارات عبر السيرفر api/maps.js */
+const CONFIG = {
+  center: [32.0, 44.3364], zoom: 13,
+  tiles: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap' },
+  cats: [['⛽', 'fuel', 'وقود'], ['☕', 'cafe', 'مقاهي'], ['🍽', 'restaurant', 'مطاعم'], ['💊', 'pharmacy', 'صيدليات'], ['🏥', 'hospital', 'مستشفيات'], ['🅿️', 'parking', 'مواقف']],
+  reports: [['police', '👮', 'شرطة'], ['accident', '💥', 'حادث'], ['traffic', '🚦', 'ازدحام'], ['hazard', '⚠️', 'خطر'], ['camera', '📷', 'كاميرا'], ['closed', '⛔', 'طريق مغلق']]
+};
+const API = {
+  async search(q, bounds, near) {
+    let u = '/api/maps?type=search&q=' + encodeURIComponent(q);
+    if (bounds) u += '&viewbox=' + [bounds.getWest(), bounds.getNorth(), bounds.getEast(), bounds.getSouth()].join(',');
+    else if (near) u += '&near=' + near.lat + ',' + near.lng;
+    const r = await fetch(u); if (!r.ok) throw 0; return r.json();
+  },
+  async route(a, b) {
+    const r = await fetch('/api/maps?type=route&mode=car&from=' + a.lat + ',' + a.lon + '&to=' + b.lat + ',' + b.lon);
+    if (!r.ok) throw 0; return r.json();   // { distance, duration, coords, steps }
+  }
+};
+
+const $ = id => document.getElementById(id), ar = n => n.toLocaleString('ar-EG');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const kv = { get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const fmtD = m => m < 1000 ? ar(Math.round(m / 10) * 10) + ' م' : ar(+(m / 1000).toFixed(1)) + ' كم';
+const fmtT = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? ar(m) + ' د' : ar(Math.floor(m / 60)) + ' س ' + ar(m % 60) + ' د'; };
+const clock = s => new Date(Date.now() + s * 1000).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2400); }
+
+const map = L.map('map', { zoomControl: false, center: CONFIG.center, zoom: CONFIG.zoom });
+const dist = (a, b) => map.distance([a.lat, a.lon], [b.lat, b.lon]);
+const tl = L.tileLayer(CONFIG.tiles.url, { attribution: CONFIG.tiles.attribution, maxZoom: 19 }).addTo(map);
+fetch('/api/maps?type=config').then(r => r.json()).then(c => { if (c.tiles) tl.setUrl(c.tiles); }).catch(() => {});
+const found = L.layerGroup().addTo(map), routeL = L.layerGroup().addTo(map), repL = L.layerGroup().addTo(map);
+
+/* الصوت */
+let muted = kv.get('muted', false);
+function speak(t) { if (muted || !window.speechSynthesis) return; const u = new SpeechSynthesisUtterance(t); u.lang = 'ar-SA'; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+function showMute() { $('bMute').textContent = muted ? '🔇' : '🔊'; }
+$('bMute').onclick = () => { muted = !muted; kv.set('muted', muted); showMute(); toast(muted ? 'تم كتم الصوت' : 'الصوت يعمل'); };
+showMute();
+
+/* المظهر */
+function theme(v) { const r = document.documentElement; if (v === 'auto') delete r.dataset.theme; else r.dataset.theme = v; kv.set('theme', v); }
+$('bTheme').onclick = () => { const n = { auto: 'dark', dark: 'light', light: 'auto' }[kv.get('theme', 'auto')]; theme(n); toast({ auto: 'مظهر تلقائي', dark: 'مظهر داكن', light: 'مظهر فاتح' }[n]); };
+theme(kv.get('theme', 'auto'));
+
+/* الموقع */
+let me = null, meM = null, sim = false, watchId = null, heading = 0, nav = false;
+function setMe(p) {
+  me = { lat: p.lat, lon: p.lon };
+  if (p.heading != null && !isNaN(p.heading)) heading = p.heading;
+  if (!meM) meM = L.marker([me.lat, me.lon], { zIndexOffset: 900, icon: L.divIcon({ className: 'car', iconSize: [44, 44], iconAnchor: [22, 22], html: '<svg viewBox="0 0 40 40"><path d="M20 3 L34 35 L20 28 L6 35Z" fill="#05c8f7" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg>' }) }).addTo(map);
+  else meM.setLatLng([me.lat, me.lon]);
+  const sv = meM.getElement() && meM.getElement().firstChild; if (sv) sv.style.transform = 'rotate(' + heading + 'deg)';
+  $('spdN').textContent = ar(Math.round((p.speed || 0) * 3.6));
+}
+function onPos(p) { setMe(p); if (nav) step(); }
+function watch() {
+  if (watchId != null || !navigator.geolocation) return;
+  watchId = navigator.geolocation.watchPosition(g => { if (!sim) onPos({ lat: g.coords.latitude, lon: g.coords.longitude, speed: g.coords.speed, heading: g.coords.heading }); },
+    () => toast('تعذّر تحديد موقعك، فعّل إذن الموقع'), { enableHighAccuracy: true, maximumAge: 1000 });
+}
+function locate() {
+  if (!navigator.geolocation) return toast('المتصفح لا يدعم تحديد الموقع');
+  navigator.geolocation.getCurrentPosition(g => { setMe({ lat: g.coords.latitude, lon: g.coords.longitude }); map.flyTo([me.lat, me.lon], 16); watch(); },
+    () => toast('تعذّر تحديد موقعك، فعّل إذن الموقع'), { enableHighAccuracy: true, timeout: 10000 });
+}
+$('bLoc').onclick = () => { if (me) map.flyTo([me.lat, me.lon], 16); else locate(); };
+
+/* البحث */
+const pinI = L.divIcon({ className: '', html: '<div class="pin"></div>', iconSize: [36, 36], iconAnchor: [6, 36] });
+function list(items, icon, still) {
+  const r = $('res'); r.innerHTML = ''; found.clearLayers();
+  if (!items.length) r.innerHTML = '<div class="note">ما لقيت نتائج، جرّب كلمة ثانية</div>';
+  items.forEach(p => {
+    const b = document.createElement('button'); b.className = 'row';
+    b.innerHTML = '<span class="ico">' + icon + '</span><span><b>' + esc(p.name) + '</b><small>' + esc(p.addr) + '</small></span>';
+    b.onclick = () => pick(p); r.appendChild(b);
+    if (!still) L.marker([p.lat, p.lon], { icon: pinI }).on('click', () => pick(p)).addTo(found);
+  });
+  r.classList.add('on');
+  if (!still && items.length > 1) map.fitBounds(L.latLngBounds(items.map(p => [p.lat, p.lon])).pad(.2), { maxZoom: 16 });
+}
+async function run(q, bounds, icon) {
+  $('res').innerHTML = '<div class="note">جارٍ البحث…</div>'; $('res').classList.add('on');
+  try { list(await API.search(q, bounds, bounds ? null : (me ? { lat: me.lat, lng: me.lon } : map.getCenter())), icon || '📍'); }
+  catch (e) { $('res').innerHTML = '<div class="note">تعذّر الاتصال بخدمة البحث</div>'; }
+}
+let tm; $('q').addEventListener('input', () => { clearTimeout(tm); const q = $('q').value.trim(); if (q.length < 3) return $('res').classList.remove('on'); tm = setTimeout(() => run(q), 450); });
+$('q').addEventListener('focus', () => { if ($('q').value) return; const s = kv.get('fav', []).concat(kv.get('rec', [])).slice(0, 8); if (s.length) list(s, '🕘', true); });
+CONFIG.cats.forEach(c => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = c[0] + ' ' + c[2]; b.onclick = () => { $('q').value = ''; run(c[1], map.getBounds(), c[0]); }; $('chips').appendChild(b); });
+map.on('click', () => $('res').classList.remove('on'));
+
+/* معاينة المسار */
+let dest = null, route = null;
+const isFav = p => kv.get('fav', []).some(f => f.lat === p.lat && f.lon === p.lon);
+async function pick(p) {
+  dest = p; $('res').classList.remove('on'); $('q').blur(); found.clearLayers(); routeL.clearLayers();
+  L.marker([p.lat, p.lon], { icon: pinI }).addTo(found);
+  const r = kv.get('rec', []).filter(x => !(x.lat === p.lat && x.lon === p.lon)); r.unshift({ name: p.name, addr: p.addr, lat: p.lat, lon: p.lon }); kv.set('rec', r.slice(0, 6));
+  $('pName').textContent = p.name; $('pAddr').textContent = p.addr; $('pT').textContent = '…'; $('pD').textContent = '';
+  $('bSave').textContent = isFav(p) ? '★' : '☆';
+  document.body.classList.add('prev'); $('pcard').classList.add('on');
+  map.flyTo([p.lat, p.lon], 15);
+  if (!me) { locate(); $('pT').textContent = 'اسمح بالموقع ثم اخترها مرة ثانية'; return; }
+  await plan();
+}
+async function plan() {
+  try {
+    route = await API.route(me, dest); draw();
+    map.fitBounds(L.latLngBounds(route.coords).pad(.3));
+    $('pT').textContent = fmtT(route.duration); $('pD').textContent = fmtD(route.distance) + ' · وصول ' + clock(route.duration);
+  } catch (e) { $('pT').textContent = 'تعذّر حساب المسار'; }
+}
+function draw() {
+  routeL.clearLayers();
+  L.polyline(route.coords, { color: '#fff', weight: 13, lineCap: 'round' }).addTo(routeL);
+  L.polyline(route.coords, { color: '#05c8f7', weight: 8, lineCap: 'round' }).addTo(routeL);
+}
+$('bX').onclick = () => { $('pcard').classList.remove('on'); document.body.classList.remove('prev'); routeL.clearLayers(); found.clearLayers(); dest = null; route = null; };
+$('bSave').onclick = () => {
+  if (!dest) return; let f = kv.get('fav', []);
+  if (isFav(dest)) { f = f.filter(x => !(x.lat === dest.lat && x.lon === dest.lon)); toast('أُزيل من المحفوظات'); }
+  else { f.unshift({ name: dest.name, addr: dest.addr, lat: dest.lat, lon: dest.lon }); toast('تم الحفظ'); }
+  kv.set('fav', f); $('bSave').textContent = isFav(dest) ? '★' : '☆';
+};
+
+/* التوجيه خطوة بخطوة */
+const MOD = { left: ['⬅', 'انعطف يسارًا'], right: ['➡', 'انعطف يمينًا'], 'slight left': ['↖', 'انحرف قليلًا يسارًا'], 'slight right': ['↗', 'انحرف قليلًا يمينًا'], 'sharp left': ['↙', 'انعطف بحدة يسارًا'], 'sharp right': ['↘', 'انعطف بحدة يمينًا'], straight: ['⬆', 'استمر للأمام'], uturn: ['↩', 'استدر للخلف'] };
+function instr(s) {
+  if (s.type === 'arrive') return ['🏁', 'وصلت إلى وجهتك'];
+  if (s.type === 'depart') return ['⬆', 'انطلق'];
+  if (/roundabout|rotary/.test(s.type)) return ['🔄', 'ادخل الدوار'];
+  return MOD[s.mod] || ['⬆', 'استمر للأمام'];
+}
+let k = 1, flags = {}, lastRe = 0, repSeen = {}, simT = null;
+function start() {
+  if (!route || !me) return toast('اسمح بالموقع أولًا');
+  nav = true; k = 1; flags = {}; repSeen = {};
+  document.body.classList.remove('prev'); document.body.classList.add('nav');
+  $('pcard').classList.remove('on'); $('nbar').classList.add('on'); watch();
+  speak('انطلق. ' + (route.steps[1] ? instr(route.steps[1])[1] : ''));
+  step(); map.setView([me.lat, me.lon], 17);
+}
+function step() {
+  const S = route.steps; if (!S.length) return;
+  let s = S[k], d = dist(me, s);
+  if (d < 30 && k < S.length - 1) { k++; s = S[k]; d = dist(me, s); }
+  if (s.type === 'arrive' && d < 30) return finish();
+  const [ic, tx] = instr(s);
+  $('bArrow').textContent = ic; $('bDist').textContent = fmtD(d); $('bText').textContent = tx; $('bName').textContent = s.name ? 'إلى ' + s.name : '';
+  const kf = flags[k] || (flags[k] = {});
+  if (d < 380 && !kf.a) { kf.a = 1; speak('بعد ' + ar(Math.max(50, Math.round(d / 50) * 50)) + ' متر، ' + tx); }
+  if (d < 70 && !kf.b) { kf.b = 1; speak(tx); }
+  let rem = d; for (let j = k; j < S.length; j++) rem += S[j].dist;
+  const sec = route.duration * rem / route.distance;
+  $('nT').textContent = fmtT(sec); $('nD').textContent = fmtD(rem); $('nA').textContent = clock(sec);
+  map.panTo([me.lat, me.lon], { animate: true, duration: .5 });
+  reps().forEach(r => { if (!repSeen[r.ts] && dist(me, r) < 350) { repSeen[r.ts] = 1; speak(r.n + ' أمامك'); toast(r.e + ' ' + r.n + ' أمامك'); } });
+  let m = 1e9; for (let i = 0; i < route.coords.length; i += 2) { const x = map.distance([me.lat, me.lon], route.coords[i]); if (x < m) m = x; }
+  if (m > 80 && !sim && Date.now() - lastRe > 8000) { lastRe = Date.now(); speak('جارٍ إعادة حساب المسار'); API.route(me, dest).then(r => { route = r; k = 1; flags = {}; draw(); }).catch(() => {}); }
+}
+function finish() { speak('وصلت إلى وجهتك'); toast('🏁 وصلت إلى وجهتك'); end(); }
+function end() {
+  nav = false; sim = false; clearInterval(simT); $('bSim').textContent = '▶';
+  document.body.classList.remove('nav', 'prev'); $('nbar').classList.remove('on'); routeL.clearLayers(); found.clearLayers(); dest = null; route = null;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+}
+$('bStart').onclick = start; $('bEnd').onclick = end;
+function bearing(a, b) { const t = Math.PI / 180, y = Math.sin((b[1] - a[1]) * t) * Math.cos(b[0] * t), x = Math.cos(a[0] * t) * Math.sin(b[0] * t) - Math.sin(a[0] * t) * Math.cos(b[0] * t) * Math.cos((b[1] - a[1]) * t); return (Math.atan2(y, x) / t + 360) % 360; }
+$('bSim').onclick = () => {   /* وضع تجربة: يحرك السيارة على المسار بدون قيادة فعلية */
+  if (!route) return;
+  if (sim) { sim = false; clearInterval(simT); $('bSim').textContent = '▶'; return; }
+  sim = true; $('bSim').textContent = '⏸'; let i = 0; const C = route.coords;
+  simT = setInterval(() => {
+    if (i >= C.length - 1) { clearInterval(simT); return; }
+    const a = C[i], b = C[Math.min(i + 3, C.length - 1)];
+    onPos({ lat: b[0], lon: b[1], speed: 14, heading: bearing(a, b) }); i += 3;
+  }, 350);
+};
+
+/* البلاغات (تُحفظ على جهازك فقط) */
+const reps = () => kv.get('reps', []).filter(r => Date.now() - r.ts < 3 * 3600e3);
+function showReps() { repL.clearLayers(); reps().forEach(r => L.marker([r.lat, r.lon], { icon: L.divIcon({ className: '', html: '<div class="rp">' + r.e + '</div>', iconSize: [36, 36], iconAnchor: [18, 18] }) }).addTo(repL)); }
+CONFIG.reports.forEach(t => {
+  const b = document.createElement('button'); b.className = 'rb'; b.innerHTML = '<span>' + t[1] + '</span>' + t[2];
+  b.onclick = () => {
+    const c = me ? { lat: me.lat, lon: me.lon } : { lat: map.getCenter().lat, lon: map.getCenter().lng };
+    kv.set('reps', reps().concat([{ t: t[0], e: t[1], n: t[2], lat: c.lat, lon: c.lon, ts: Date.now() }]));
+    showReps(); $('rsheet').classList.remove('on'); toast('شكرًا! تم تسجيل البلاغ ' + t[1]);
+  };
+  $('rGrid').appendChild(b);
+});
+$('bRep').onclick = () => $('rsheet').classList.add('on'); $('rX').onclick = () => $('rsheet').classList.remove('on');
+showReps();
+
+/* إذن الموقع */
+function ask() { $('perm').classList.add('on'); }
+$('pYes').onclick = () => { $('perm').classList.remove('on'); locate(); };
+$('pNo').onclick = () => $('perm').classList.remove('on');
+if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(r => { if (r.state === 'granted') locate(); else if (r.state === 'prompt') ask(); }).catch(ask); else ask();
+</script>
+</body>
+</html>
